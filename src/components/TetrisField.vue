@@ -38,13 +38,14 @@
         const kind = Math.floor(Math.random() * 7);
         this.unfixedBlock = this.blockKind[kind];
         this.rewriteUnder();
+        this.drawBlock();
         for (let i = 0; i < 4; i++) {
           if (this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]]) {
             clearTimeout(this.game);
-            throw 'game over';
+            console.log('GAME OVER');
+            break;
           }
         }
-        this.drawBlock();
       },
       fallBlock: function () { //ブロックの落下 setInterval?
         if (this.underCheck()) {
