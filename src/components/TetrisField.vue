@@ -11,8 +11,8 @@
         ctx: undefined,
         gridConditions: [], //10*21
         unfixedBlock: undefined, //落下中のブロックが占有するマス
-        blockKind: [[[0,3], [0,4], [0,5], [0,6]], [[1,4], [1,5], [0,6], [1,6]], [[0,4], [1,4], [1,5], [1,6]], 
-        [[0,4], [0,5], [1,5], [1,6]], [[1,4], [0,5], [1,5], [1,6]], [[0,4], [1,4], [0,5], [1,5]], [[1,4], [0,5],[1,5],[1,6]]],
+        blockKind: [[[0,3], [0,4], [0,5], [0,6]], [[0,4], [0,5], [-1,6], [0,6]], [[-1,4], [0,4], [0,5], [0,6]], 
+        [[-1,4], [-1,5], [0,5], [0,6]], [[0,4], [-1,5], [0,5], [-1,6]], [[-1,4], [0,4], [-1,5], [0,5]], [[0,4], [-1,5],[0,5],[0,6]]],
         //7種類のブロックそれぞれが占有するマス 0: 棒 1: L 2: 逆L 3: Z 4: 逆Z 5: 四角 6: 凸
         underBlock: undefined, //ブロックが次に落ちるマス
         game: undefined
@@ -31,24 +31,28 @@
       }
       this.gridConditions.push(Array(10).fill(true));
       this.appearBlock();
-      this.game = setInterval(this.fallBlock, 200);
+      this.game = setInterval(this.fallBlock, 500);
     },
     methods: {
       appearBlock: function () { //ブロックの出現
         const kind = Math.floor(Math.random() * 7);
         this.unfixedBlock = this.blockKind[kind];
         this.rewriteUnder();
-        this.drawBlock();
+        let overChecker = false;
         for (let i = 0; i < 4; i++) {
-          if (this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]]) {
+          if (this.unfixedBlock[i][0] > -1 && this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]]) { //-1error??
+            overChecker = true;
             clearTimeout(this.game);
             console.log('GAME OVER');
             break;
           }
         }
+        if (!overChecker) {
+          this.drawBlock();
+        }
       },
       fallBlock: function () { //ブロックの落下 setInterval?
-        if (this.underCheck()) {
+        if (this.underCheck() == 0) {
           this.clearBlock();
           let newUnfixed = [];
           for (let i = 0; i < 4; i++) {
@@ -57,24 +61,31 @@
           this.unfixedBlock = newUnfixed;
           this.rewriteUnder();
           this.drawBlock();
-        } else {
+        } else if (this.underCheck() == 1) {
           for (let i = 0; i < 4; i++) {
             this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]] = true;
           }
           this.appearBlock();
+        } else { //gameover
+          clearTimeout(this.game);
+          console.log('GAME OVER');
         }
       },
       drawBlock: function () { //ブロックの描画
         this.ctx.fillStyle = 'black';
         for (let i = 0; i < 4; i++) {
-          this.ctx.fillRect(this.unfixedBlock[i][1] * 20, this.unfixedBlock[i][0] * 20, 20, 20);
+          if (this.unfixedBlock[i][0] > -1) {
+            this.ctx.fillRect(this.unfixedBlock[i][1] * 20, this.unfixedBlock[i][0] * 20, 20, 20);
+          }
         }
       },
       clearBlock: function() { //ブロックの描画取り消し
         this.ctx.fillStyle = 'white';
         for (let i = 0; i < 4; i++) {
-          this.ctx.fillRect(this.unfixedBlock[i][1] * 20, this.unfixedBlock[i][0] * 20, 20, 20);
-          this.ctx.strokeRect(this.unfixedBlock[i][1] * 20, this.unfixedBlock[i][0] * 20, 20, 20);
+          if (this.unfixedBlock[i][0] > -1) {
+            this.ctx.fillRect(this.unfixedBlock[i][1] * 20, this.unfixedBlock[i][0] * 20, 20, 20);
+            this.ctx.strokeRect(this.unfixedBlock[i][1] * 20, this.unfixedBlock[i][0] * 20, 20, 20);
+          }
         }
       },
       rewriteUnder: function () { //underBlockを書き換え
@@ -83,15 +94,19 @@
           this.underBlock.push([this.unfixedBlock[i][0] + 1, this.unfixedBlock[i][1]]);
         }
       },
-      underCheck: function () { //ブロックの落ちる余地があるかどうか確認、あるならreturn true
-        let bool = true;
+      underCheck: function () { //ブロックの落ちる余地があるかどうか確認、あるなら0、無くて固定なら1、gameoverなら2
+        let result = 0, minusExistance = false;
         for (let i = 0; i < 4; i++) {
-          if (this.gridConditions[this.underBlock[i][0]][this.underBlock[i][1]]) {
-            bool = false;
-            break;
+          if (this.unfixedBlock[i][0] == -1) {
+            minusExistance = true;
+          } else if (this.gridConditions[this.underBlock[i][0]][this.underBlock[i][1]]) {
+            result = 1;
           }
         }
-        return bool;
+        if (result == 1 && minusExistance == true) {
+          result = 2;
+        }
+        return result;
       }
     }
   }
