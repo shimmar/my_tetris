@@ -111,11 +111,36 @@
         }
         return result;
       },
+      moveBlock: function (dir) {
+        let moveto = [], movable = true;
+        for (let i = 0; i < 4; i++) {
+          if (this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1] + dir]
+           || this.unfixedBlock[i][1] + dir < 0 || this.unfixedBlock[i][1] + dir > 9) {
+            movable = false;
+            break;
+          } else {
+            moveto.push([this.unfixedBlock[i][0], this.unfixedBlock[i][1] + dir]);
+          }
+        }
+        if (movable) {
+          this.clearBlock();
+          this.unfixedBlock = moveto;
+          this.rewriteUnder();
+          this.drawBlock();
+        }
+      },
       handleKeyDown: function (event) {
         //up: 38, down: 40, left: 37, right: 39
         const keyCode = event.keyCode;
         if (keyCode == 40) {
           this.fallBlock();
+        } else if (keyCode == 37) {
+          this.moveBlock(-1);
+        } else if (keyCode == 39) {
+          this.moveBlock(1);
+        } else if (keyCode == 38) {
+          //ブロックの回転
+          console.log('routate');
         }
       }
     }
