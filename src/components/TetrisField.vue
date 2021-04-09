@@ -32,6 +32,7 @@
       this.gridConditions.push(Array(10).fill(true));
       this.appearBlock();
       this.game = setInterval(this.fallBlock, 500);
+      window.addEventListener("keydown", this.handleKeyDown);
     },
     methods: {
       appearBlock: function () { //ブロックの出現
@@ -40,8 +41,9 @@
         this.rewriteUnder();
         let overChecker = false;
         for (let i = 0; i < 4; i++) {
-          if (this.unfixedBlock[i][0] > -1 && this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]]) { //-1error??
+          if (this.unfixedBlock[i][0] > -1 && this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]]) {
             overChecker = true;
+            window.removeEventListener("keydown", this.handleKeyDown);
             clearTimeout(this.game);
             console.log('GAME OVER');
             break;
@@ -51,7 +53,7 @@
           this.drawBlock();
         }
       },
-      fallBlock: function () { //ブロックの落下 setInterval?
+      fallBlock: function () { //ブロックの落下
         if (this.underCheck() == 0) {
           this.clearBlock();
           let newUnfixed = [];
@@ -67,6 +69,7 @@
           }
           this.appearBlock();
         } else { //gameover
+          window.removeEventListener("keydown", this.handleKeyDown);
           clearTimeout(this.game);
           console.log('GAME OVER');
         }
@@ -107,6 +110,13 @@
           result = 2;
         }
         return result;
+      },
+      handleKeyDown: function (event) {
+        //up: 38, down: 40, left: 37, right: 39
+        const keyCode = event.keyCode;
+        if (keyCode == 40) {
+          this.fallBlock();
+        }
       }
     }
   }
