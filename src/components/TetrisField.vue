@@ -11,10 +11,21 @@
         ctx: undefined,
         gridConditions: [], //10*21
         unfixedBlock: undefined, //落下中のブロックが占有するマス
-        blockKind: [[[0,3], [0,4], [0,5], [0,6]], [[0,4], [0,5], [-1,6], [0,6]], [[-1,4], [0,4], [0,5], [0,6]], 
-        [[-1,4], [-1,5], [0,5], [0,6]], [[0,4], [-1,5], [0,5], [-1,6]], [[-1,4], [0,4], [-1,5], [0,5]], [[0,4], [-1,5],[0,5],[0,6]]],
+        blockKind: [[[0,3], [0,4], [0,5], [0,6]], [[0,4], [0,5], [0,6], [-1,6]], [[0,6], [0,5], [0,4], [-1,4]], 
+        [[-1,4], [-1,5], [0,5], [0,6]], [[0,4], [0,5], [-1,5], [-1,6]], [[-1,4], [0,4], [-1,5], [0,5]], [[-1,5], [0,5],[0,4],[0,6]]],
         //7種類のブロックそれぞれが占有するマス 0: 棒 1: L 2: 逆L 3: Z 4: 逆Z 5: 四角 6: 凸
+        blockNumber: undefined, //どのブロックかを示す番号、0~6
         underBlock: undefined, //ブロックが次に落ちるマス
+        rotateCount: 0, //これまでの回転の回数
+        rotateNext: 
+        [[[[-2,2], [-1,1], [0,0], [1,-1]], [[2,-2], [1,-1], [0,0], [-1,1]]], //0
+        [[[-1,1], [0,0], [1,-1], [2,0]], [[1,1], [0,0], [-1,-1], [0,-2]], [[1,-1], [0,0], [-1,1], [-2,0]], [[-1,-1], [0,0], [1,1], [0,2]]], //1
+        [[[1,-1], [0,0], [-1,1], [0,2]], [[-1,-1], [0,0], [1,1], [2,0]], [[-1,1], [0,0], [1,-1], [0,-2]], [[1,1], [0,0], [-1,-1], [-2,0]]], //2
+        [[[0,2], [1,1], [0,0], [1,-1]], [[0,-2], [-1,-1], [0,0], [-1,1]]], //3
+        [[[-1,1], [0,0], [1,1], [2,0]], [[1,-1], [0,0], [-1,-1], [-2,0]]], //4
+        [[[0,0], [0,0], [0,0], [0,0]]], //5
+        [[[1,1], [0,0], [-1,1], [1,-1]], [[1,-1], [0,0], [1,1], [-1,-1]], [[-1,-1], [0,0], [1,-1], [-1,1]], [[-1,1], [0,0], [-1,-1], [1,1]]] //6
+        ], //ブロックの回転に伴う座標の変化を定義
         game: undefined
       }
     },
@@ -36,8 +47,9 @@
     },
     methods: {
       appearBlock: function () { //ブロックの出現
-        const kind = Math.floor(Math.random() * 7);
-        this.unfixedBlock = this.blockKind[kind];
+        this.rotateCount = 0;
+        this.blockNumber = Math.floor(Math.random() * 7);
+        this.unfixedBlock = this.blockKind[this.blockNumber];
         this.rewriteUnder();
         let overChecker = false;
         for (let i = 0; i < 4; i++) {
@@ -54,7 +66,7 @@
         }
       },
       fallBlock: function () { //ブロックの落下
-        if (this.underCheck() == 0) {
+        if (this.underCheck() === 0) {
           this.clearBlock();
           let newUnfixed = [];
           for (let i = 0; i < 4; i++) {
@@ -63,7 +75,7 @@
           this.unfixedBlock = newUnfixed;
           this.rewriteUnder();
           this.drawBlock();
-        } else if (this.underCheck() == 1) {
+        } else if (this.underCheck() === 1) {
           for (let i = 0; i < 4; i++) {
             this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]] = true;
           }
@@ -100,34 +112,80 @@
       underCheck: function () { //ブロックの落ちる余地があるかどうか確認、あるなら0、無くて固定なら1、gameoverなら2
         let result = 0, minusExistance = false;
         for (let i = 0; i < 4; i++) {
-          if (this.unfixedBlock[i][0] == -1) {
+          if (this.unfixedBlock[i][0] < 0) {
             minusExistance = true;
           } else if (this.gridConditions[this.underBlock[i][0]][this.underBlock[i][1]]) {
             result = 1;
           }
         }
-        if (result == 1 && minusExistance == true) {
+        if (result === 1 && minusExistance) {
           result = 2;
         }
         return result;
       },
       moveBlock: function (dir) {
-        let moveto = [], movable = true;
+        let moveto = new Array(4);
         for (let i = 0; i < 4; i++) {
-          if (this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1] + dir]
-           || this.unfixedBlock[i][1] + dir < 0 || this.unfixedBlock[i][1] + dir > 9) {
-            movable = false;
-            break;
-          } else {
-            moveto.push([this.unfixedBlock[i][0], this.unfixedBlock[i][1] + dir]);
-          }
+          moveto[i] = [this.unfixedBlock[i][0], this.unfixedBlock[i][1] + dir];
         }
-        if (movable) {
+        if (this.filledCheck(moveto) === false) {
           this.clearBlock();
           this.unfixedBlock = moveto;
           this.rewriteUnder();
           this.drawBlock();
         }
+      },
+      rotateBlock: function () {
+        const lib = this.rotateNext[this.blockNumber];
+        const difference = lib[this.rotateCount % lib.length];
+        let next = new Array(4);
+        for (let i = 0; i < 4; i++) {
+          next[i] = [this.unfixedBlock[i][0] + difference[i][0], this.unfixedBlock[i][1] + difference[i][1]];
+        }
+        if (this.filledCheck(next)) {
+          let leftRotated = new Array(4);
+          for (let i = 0; i < 4; i++) {
+            leftRotated[i] = [next[i][0], next[i][1] - 1];
+          }
+          if (this.filledCheck(leftRotated)) {
+            let rightRotated = new Array(4);
+            for (let i = 0; i < 4; i++) {
+              rightRotated[i] = [next[i][0], next[i][1] + 1];
+            }
+            if (this.filledCheck(rightRotated) === false) {
+              //右にずらして回転
+              this.clearBlock();
+              this.unfixedBlock = rightRotated;
+              this.rotateCount++;
+              this.rewriteUnder();
+              this.drawBlock();
+            }
+          } else {
+            //左にずらして回転
+            this.clearBlock();
+            this.unfixedBlock = leftRotated;
+            this.rotateCount++;
+            this.rewriteUnder();
+            this.drawBlock();
+          }
+        } else {
+          //そのまま回転
+          this.clearBlock();
+          this.unfixedBlock = next;
+          this.rotateCount++;
+          this.rewriteUnder();
+          this.drawBlock();
+        }
+      },
+      filledCheck: function (target) { //埋まってるか枠外ならtrue、空いてたらfalse
+        for (let i = 0; i < 4; i++) {
+          if (target[i][0] > 19 || target[i][1] < 0 || target[i][1] > 9) {
+            return true;
+          } else if (target[i][0] >= 0 && this.gridConditions[target[i][0]][target[i][1]]) {
+            return true;
+          }
+        }
+        return false;
       },
       handleKeyDown: function (event) {
         //up: 38, down: 40, left: 37, right: 39
@@ -139,8 +197,7 @@
         } else if (keyCode == 39) {
           this.moveBlock(1);
         } else if (keyCode == 38) {
-          //ブロックの回転
-          console.log('routate');
+          this.rotateBlock();
         }
       }
     }
