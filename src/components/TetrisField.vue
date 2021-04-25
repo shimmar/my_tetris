@@ -76,9 +76,18 @@
           this.rewriteUnder();
           this.drawBlock();
         } else if (this.underCheck() === 1) {
+          let blockY = [];
           for (let i = 0; i < 4; i++) {
             this.gridConditions[this.unfixedBlock[i][0]][this.unfixedBlock[i][1]] = true;
+            blockY.push(this.unfixedBlock[i][0]);
           }
+          const min = blockY.reduce(function(a, b) {
+            return Math.min(a, b);
+          })
+          const max = blockY.reduce(function(a, b) {
+            return Math.max(a, b);
+          })
+          this.clearLine(min, max);
           this.appearBlock();
         } else { //gameover
           window.removeEventListener("keydown", this.handleKeyDown);
@@ -186,6 +195,54 @@
           }
         }
         return false;
+      },
+      clearLine: function (top, bottom) { //top, bottomは新たに固定されたブロックの縦の座標
+        let cleared = new Set();
+        for (let i = top; i <= bottom; i++) { //揃った行がどれか判定
+          const torf = new Set(this.gridConditions[i]);
+          if (torf.has(false) === false) {
+            cleared.add(i);
+          }
+        }
+        if (cleared.size > 0) { //一行以上消える時だけ以下の処理
+          let newConditions = []; //新たなgridConditions
+          for (let i = 0; i < cleared.size; i++) {
+            newConditions.push(Array(10).fill(false));
+          }
+          for (let i = 0; i < 20; i++) {
+            if (cleared.has(i) === false) {
+              newConditions.push(this.gridConditions[i]);
+            }
+          }
+          newConditions.push(Array(10).fill(true));
+          cleared = Array.from(cleared);
+          const lowest = cleared.reduce(function(a, b) {
+            return Math.max(a, b);
+          })
+          this.ctx.fillStyle = 'white';
+          this.ctx.fillRect(0, 0, 200, 20 * (lowest + 1)); //一旦lowestより上を消す
+          for (let i = 0; i < (lowest + 1); i++) { //横線描画
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 20 + 20 * i);
+            this.ctx.lineTo(200, 20 + 20 * i);
+            this.ctx.stroke();
+          }
+          for (let i = 0; i < 11; i++) { //縦線描画
+            this.ctx.beginPath();
+            this.ctx.moveTo(20 * i, 0);
+            this.ctx.lineTo(20 * i, 400);
+            this.ctx.stroke();
+          }
+          this.ctx.fillStyle = 'black';
+          for (let i = 0; i < (lowest + 1); i++) { //埋まったマス再描画
+            for (let j = 0; j < 10; j++) {
+              if (newConditions[i][j]) {
+                this.ctx.fillRect(20 * j, 20 * i, 20, 20);
+              }
+            }
+          }
+          this.gridConditions = newConditions;
+        }
       },
       handleKeyDown: function (event) {
         //up: 38, down: 40, left: 37, right: 39
