@@ -32,11 +32,18 @@
     mounted: function () {
       const canvas = document.getElementById('canvas');
       this.ctx = canvas.getContext('2d');
-      for (let i = 0; i < 20; i++) { //グリッドを描画
-        for (let j = 0; j < 10; j++) {
-          this.ctx.strokeRect(j * 20, i * 20, 20, 20);
-        }
-      }
+      for (let i = 0; i < 21; i++) { //横線描画
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 20 * i);
+            this.ctx.lineTo(200, 20 * i);
+            this.ctx.stroke();
+          }
+          for (let i = 0; i < 11; i++) { //縦線描画
+            this.ctx.beginPath();
+            this.ctx.moveTo(20 * i, 0);
+            this.ctx.lineTo(20 * i, 400);
+            this.ctx.stroke();
+          }
       for (let i = 0; i < 20; i++) {
         this.gridConditions.push(Array(10).fill(false));
       }
