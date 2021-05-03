@@ -5,7 +5,7 @@
 <script>
 
   export default {
-    name: 'TetrisField',
+    name: 'GameField',
     data: function () {
       return {
         ctx: undefined,

@@ -1,19 +1,19 @@
 <template>
   <v-app>
     <v-main>
-      <TetrisField/>
+      <GameField/>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import TetrisField from './components/TetrisField';
+import GameField from './components/GameField';
 
 export default {
   name: 'App',
 
   components: {
-    TetrisField
+    GameField
   },
 
   data: () => ({
